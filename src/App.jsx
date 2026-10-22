@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import HatchPage from './HatchPage.jsx';
+import DashboardPage from './DashboardPage.jsx';
+import IntroPage from './IntroPage.jsx';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('hatch');
+  const [currentScreen, setCurrentScreen] = useState('intro');
   const [petName, setPetName] = useState('');
+  const [stats, setStats] = useState({
+    coins: 50,
+    pet_xp: 35,
+    pet_level: 1
+  });
 
   const handleHatchComplete = (chosenName) => {
     setPetName(chosenName);
@@ -12,16 +19,23 @@ export default function App() {
 
   return (
     <div>
+      {currentScreen === 'intro' && (
+        <IntroPage onIntroComplete={() => setCurrentScreen('hatch')}/>
+      )}
+
+
+
       {currentScreen === 'hatch' && (
         <HatchPage onHatchComplete={handleHatchComplete} />
       )}
       
       {currentScreen === 'dashboard' && (
-        <div style={{ padding: '40px', fontFamily: 'sans-serif' }}>
-          <h1>Welcome to the Dashboard!</h1>
-          <p>Your companion <b>{petName}</b> has hatched successfully.</p>
-        </div>
+        <DashboardPage 
+        stats={stats}
+        petName={petName}
+        setStats={setStats}/>
       )}
+    
     </div>
   );
 }
