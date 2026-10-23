@@ -68,11 +68,11 @@ const styles = {
   },
   leftPasture: {
     flex: '0 0 55%',
-    background: '#e0f2fe',
+    background: '#f5ece1',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRight: '4px solid #cbd5e1'
+    borderRight: '6px solid #d6c4ae'
   },
   eggContainer: {
     fontSize: '6rem',
@@ -83,7 +83,8 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)'
+    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)',
+    borderColor: '#b45309'
   },
   rightSlate: {
     flex: '0 0 45%',
@@ -91,7 +92,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
-    background: '#ffffff'
+    background: '#fffdfa'
   },
   title: {
     fontSize: '22px',
@@ -123,7 +124,7 @@ const styles = {
     color: '#334155'
   },
   pixelButton: {
-    background: '#22c55e',
+    background: '#15803d ',
     color: 'white',
     fontSize: '14px',
     fontWeight: 'bold',
