@@ -126,6 +126,37 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
   ( x )`;
     }
   };
+
+  const handleFactoryReset = () => {
+    const firstConfirm = window.confirm("⚠️ WARNING: You are about to initiate a terminal data wipe. This will delete your companion, stats, and active quests permanently. Proceed?");
+    if (!firstConfirm) return;
+
+    const secondConfirm = window.confirm("🚨 FINAL CONFIRMATION: This action is completely irreversible. Are you absolutely sure you want to format the core network save file?");
+    if (!secondConfirm) return;
+
+    // 1. Purge local browser storage cache slots
+    localStorage.removeItem('terra_core_save');
+
+    // 2. Dispatch a clean network packet to wipe out Server.js memory variables
+    fetch('/api/game-state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        currentScreen: 'intro',
+        petName: '',
+        stats: { coins: 50, pet_xp: 35, pet_level: 1 },
+        tasks: []
+      }),
+    })
+    .then(() => {
+      // 3. Force clean layout refresh to reset App.jsx back to the intro sequence
+      window.location.reload();
+    })
+    .catch(() => {
+      window.location.reload();
+    });
+  };
+
   return (
     <div style={styles.bodyWrapper}>
       <div style={styles.dashboardContainer}>
@@ -275,6 +306,21 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
                 </button>
               </div>
             ))}
+
+            <div style ={{
+              marginTop: '30px', paddingTop: '16px', borderTop: '3px dashed #d6c4ae', textAlign: 'center'
+            }}>
+              <button type = 'button'
+                onClick = {handleFactoryReset}
+                style = {{
+                  background: '#7f1d1d', color: '#fef2f2', border: '2px solid #991b1b',
+                  borderRadius: '6px', padding: '8px 16px', fontWeight: 'bold', cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: '11px', letterSpacing: '1px', boxShadow: '0 3px 0 #450a0a'
+                }}
+                >
+                  ⚠️ INITIALIZE SYSTEM WIPE (RESET)
+                </button>
+              </div>
           </div>
         )}
 
