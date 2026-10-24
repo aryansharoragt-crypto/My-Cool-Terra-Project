@@ -118,7 +118,7 @@ const styles = {
     maxWidth: '280px',
     padding: '8px 0',
     fontSize: '16px',
-    border: 'none',
+    border: 'none', 
     borderBottom: '2px solid #cbd5e1',
     outline: 'none',
     color: '#334155'

@@ -13,35 +13,65 @@ export default function App() {
   });
   const [tasks, setTasks] = useState([]);
 
-  // 1. Load saved game data from backend on mount
+  // 1. Load saved data from backend with an automatic Browser LocalStorage fallback
   useEffect(() => {
     fetch('/api/game-state')
       .then((res) => res.json())
       .then((data) => {
-        if (data.petName) {
+        // Try reading from browser local storage first to ensure continuity on serverless restarts
+        const localSaveFile = localStorage.getItem('terra_core_save');
+        
+        if (localSaveFile) {
+          const parsedSave = JSON.parse(localSaveFile);
+          setPetName(parsedSave.petName || '');
+          setStats(parsedSave.stats);
+          setTasks(parsedSave.tasks || []);
+          if (parsedSave.petName) setCurrentScreen('dashboard');
+        } else if (data && data.petName) {
+          // If browser is empty but backend has memory, use backend payload
+          setPetName(data.petName);
+          setStats(data.stats);
+          setTasks(data.tasks || []);
           setCurrentScreen('dashboard');
         } else {
+          // New game start
           setCurrentScreen(data.currentScreen || 'intro');
+          setTasks(data.tasks || []);
         }
-        setPetName(data.petName || '');
-        setStats(data.stats || { coins: 50, pet_xp: 35, pet_level: 1 });
-        setTasks(data.tasks || []);
       })
-      .catch((err) => console.error('Error loading game state:', err));
+      .catch((err) => {
+        console.warn('Backend cold start. Checking browser cache instead...');
+        // If the backend fails or is sleeping, load directly from browser cache
+        const localSaveFile = localStorage.getItem('terra_core_save');
+        if (localSaveFile) {
+          const parsedSave = JSON.parse(localSaveFile);
+          setPetName(parsedSave.petName || '');
+          setStats(parsedSave.stats);
+          setTasks(parsedSave.tasks || []);
+          if (parsedSave.petName) setCurrentScreen('dashboard');
+        }
+      });
   }, []);
 
-  // 2. Helper to sync updates back to Server.js
+  // 2. Modified sync handler to write save files straight to browser hardware
   const syncWithBackend = (updatedScreen, updatedName, updatedStats, updatedTasksList) => {
+    // Generate an immutable snapshot payload string
+    const saveSnapshot = {
+      currentScreen: updatedScreen,
+      petName: updatedName,
+      stats: updatedStats,
+      tasks: updatedTasksList
+    };
+
+    // Commit snapshot directly to Browser LocalStorage
+    localStorage.setItem('terra_core_save', JSON.stringify(saveSnapshot));
+
+    // Send fallback data transmission to Server.js api network layer
     fetch('/api/game-state', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        currentScreen: updatedScreen,
-        petName: updatedName,
-        stats: updatedStats,
-        tasks: updatedTasksList
-      }),
-    }).catch((err) => console.error('Sync failure:', err));
+      body: JSON.stringify(saveSnapshot),
+    }).catch((err) => console.log('Serverless sync bypass active. Save cached locally.'));
   };
 
   const handleIntroComplete = () => {
@@ -67,20 +97,26 @@ export default function App() {
   return (
     <div>
       {currentScreen === 'intro' && (
-        <IntroPage onIntroComplete={handleIntroComplete}/>
+        <div className="slide-in-screen">
+          <IntroPage onIntroComplete={handleIntroComplete}/>
+        </div>
       )}
 
       {currentScreen === 'hatch' && (
-        <HatchPage onHatchComplete={handleHatchComplete} />
+        <div className="slide-in-screen">
+          <HatchPage onHatchComplete={handleHatchComplete} />
+        </div>
       )}
       
       {currentScreen === 'dashboard' && (
-        <DashboardPage 
-          stats={stats}
-          petName={petName}
-          tasks={tasks}
-          onStateChange={handleStateChange}
-        />
+        <div className="slide-in-screen">
+          <DashboardPage 
+            stats={stats}
+            petName={petName}
+            tasks={tasks}
+            onStateChange={handleStateChange}
+          />
+        </div>
       )}
     </div>
   );

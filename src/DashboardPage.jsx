@@ -1,8 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Coins, CheckCircle, Plus, Trash2 } from 'lucide-react';
 
 export default function DashboardPage({ petName, stats, tasks, onStateChange }) {
   const [newTaskText, setNewTaskText] = useState('');
+  const [activeTab, setActiveTab] = useState('quests');
+
+  // Hardcore cargo catalog with steeper pricing mechanics
+  const shopCatalog = [
+    { id: 'coffee', name: 'Premium Coffee Roast', cost: 120, desc: 'Boosts XP gain speed temporarily.', icon: '☕' },
+    { id: 'blanket', name: 'Woolen Pasture Quilt', cost: 250, desc: 'Makes your companion cozy.', icon: '🛋️' },
+    { id: 'treat', name: 'Terra Sprout Cookie', cost: 90, desc: 'Instantly awards +15 XP to companion.', icon: '🍪' }
+  ];
+
+  // Pomodoro Focus Timer State Rules (1500 seconds = 25 minutes)
+  const [secondsLeft, setSecondsLeft] = useState(1500);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  // Monitors active timer ticks every second
+  useEffect(() => {
+    let interval = null;
+    if (isTimerRunning && secondsLeft > 0) {
+      interval = setInterval(() => {
+        setSecondsLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (secondsLeft === 0 && isTimerRunning) {
+      setIsTimerRunning(false);
+      clearInterval(interval);
+      
+      let newCoins = stats.coins + 35; 
+      let newXp = stats.pet_xp + 50;   
+      let newLevel = stats.pet_level;
+
+      if (newXp >= 100) {
+        newXp -= 100;
+        newLevel += 1;
+      }
+
+      const updatedStats = { ...stats, coins: newCoins, pet_xp: newXp, pet_level: newLevel };
+      onStateChange(updatedStats, tasks);
+      
+      alert(`🎯 Focus Sprint Complete! ${petName} is proud of you. Awarded +35 Gold and +50 XP!`);
+      setSecondsLeft(1500); 
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, secondsLeft, stats, tasks, onStateChange, petName]);
+
+  const formatTime = () => {
+    const mins = Math.floor(secondsLeft / 60);
+    const secs = secondsLeft % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleAddTask = (e) => {
     e.preventDefault(); 
@@ -37,6 +84,48 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
     onStateChange(stats, updatedTasksList);
   };
 
+  const handleBuyItem = (item) => {
+    if (stats.coins < item.cost) {
+      alert(`Not enough Gold! You need ${item.cost}g but only have ${stats.coins}g.`);
+      return;
+    }
+
+    let newCoins = stats.coins - item.cost;
+    let newXp = stats.pet_xp;
+    let newLevel = stats.pet_level;
+
+    if (item.id === 'treat') {
+      newXp += 15;
+      if (newXp >= 100) {
+        newXp -= 100;
+        newLevel += 1;
+      }
+    }
+
+    const updatedStats = { ...stats, coins: newCoins, pet_xp: newXp, pet_level: newLevel };
+    onStateChange(updatedStats, tasks);
+    
+    alert(`Successfully purchased ${item.name}! ${item.icon}`);
+  };
+
+  const getPetSprite = () => {
+    if (stats.pet_level >= 6) {
+      return ` /\\_/\\
+( o.o ) ~ Elder Core
+ > ^ <
+ / | \\
+(___|____)`;
+    } else if (stats.pet_level >= 3) {
+      return `  \\|/
+ (•.•) ~ Leaflet
+ /\\_/\\
+(__|__)`;
+    } else {
+      return `  o O o
+ ( °_° ) ~ Core Pod
+  ( x )`;
+    }
+  };
   return (
     <div style={styles.bodyWrapper}>
       <div style={styles.dashboardContainer}>
@@ -55,47 +144,139 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
           </div>
         </div>
 
-        {/* Input Quest Form */}
-        <form onSubmit={handleAddTask} style={styles.questForm}>
-          <input 
-            type="text" 
-            placeholder="Add a daily quest..." 
-            value={newTaskText}
-            onChange={(e) => setNewTaskText(e.target.value)}
-            style={styles.questInput}
-          />
-          <button type="submit" style={styles.addButton}>
-            <Plus size={18} />
-          </button>
-        </form>
+        {/* Dynamic ASCII Character Monitor */}
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%', background: '#1e1b18', padding: '16px', borderRadius: '8px', border: '2px solid #78350f', margin: '16px 0', boxSizing: 'border-box' }}>
+          <pre style={styles.asciiMonitor}>
+            {getPetSprite()}
+          </pre>
+        </div>
 
-        {/* Scrolling Active Quests List */}
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {tasks.map((task) => (
-            <li key={task.id} style={{ 
-              ...styles.taskCard, 
-              background: task.completed ? '#f5ece1' : '#ffffff',
-              borderColor: task.completed ? '#cbd5e1' : '#b45309' 
+        {/* Tab Navigation Panel Controls */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+          <button 
+            onClick={() => setActiveTab('quests')}
+            style={{
+              ...styles.tabButton,
+              background: activeTab === 'quests' ? '#b45309' : '#f5ece1',
+              color: activeTab === 'quests' ? '#fffbf5' : '#451a03'
+            }}
+          >
+            📋 Daily Quests
+          </button>
+          <button 
+            onClick={() => setActiveTab('shop')}
+            style={{
+              ...styles.tabButton,
+              background: activeTab === 'shop' ? '#b45309' : '#f5ece1',
+              color: activeTab === 'shop' ? '#fffbf5' : '#451a03'
+            }}
+          >
+            🏪 Merchant Shop
+          </button>
+        </div>
+
+        {/* Quests View Layer */}
+        {activeTab === 'quests' && (
+          <>
+            {/* Retro Focus Terminal Panel */}
+            <div style={{
+              background: '#2d241e', padding: '16px', borderRadius: '10px',
+              border: '2px solid #78350f', marginBottom: '20px', textAlign: 'center',
+              boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)'
             }}>
-              <span style={{ 
-                ...styles.taskText,
-                textDecoration: task.completed ? 'line-through' : 'none',
-                color: task.completed ? '#a16207' : '#451a03'
-              }}>
-                {task.text}
+              <span style={{ fontSize: '11px', color: '#fcd34d', fontWeight: 'bold', display: 'block', letterSpacing: '1px' }}>
+                ⏳ CORE COGNITIVE FOCUS SPRINT
               </span>
-              
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <button onClick={() => handleCompleteTask(task.id)} style={styles.iconButton}>
-                  <CheckCircle size={22} color={task.completed ? "#a16207" : "#16a34a"} />
+              <div style={{ fontSize: '36px', color: '#fffbf5', fontWeight: 'bold', margin: '8px 0', fontFamily: 'monospace' }}>
+                {formatTime()}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                <button 
+                  type="button"
+                  onClick={() => setIsTimerRunning(!isTimerRunning)}
+                  style={{
+                    background: isTimerRunning ? '#b91c1c' : '#15803d',
+                    color: 'white', border: '2px solid #78350f', borderRadius: '6px',
+                    padding: '6px 14px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px'
+                  }}
+                >
+                  {isTimerRunning ? 'PAUSE TERMINAL' : 'INITIALIZE FOCUS'}
                 </button>
-                <button onClick={() => handleDeleteTask(task.id)} style={styles.iconButton}>
-                  <Trash2 size={20} color="#b91c1c" />
+                <button 
+                  type="button"
+                  onClick={() => { setIsTimerRunning(false); setSecondsLeft(1500); }}
+                  style={{
+                    background: '#f5ece1', color: '#451a03', border: '2px solid #78350f', 
+                    borderRadius: '6px', padding: '6px 14px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px'
+                  }}
+                >
+                  RESET
                 </button>
               </div>
-            </li>
-          ))}
-        </ul>
+            </div>
+
+            <form onSubmit={handleAddTask} style={styles.questForm}>
+              <input 
+                type="text" 
+                placeholder="Add a daily quest..." 
+                value={newTaskText}
+                onChange={(e) => setNewTaskText(e.target.value)}
+                style={styles.questInput}
+              />
+              <button type="submit" style={styles.addButton}>
+                <Plus size={18} />
+              </button>
+            </form>
+
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {tasks.map((task) => (
+                <li key={task.id} style={{ 
+                  ...styles.taskCard, 
+                  background: task.completed ? '#f5ece1' : '#ffffff',
+                  borderColor: task.completed ? '#cbd5e1' : '#b45309' 
+                }}>
+                  <span style={{ 
+                    ...styles.taskText,
+                    textDecoration: task.completed ? 'line-through' : 'none',
+                    color: task.completed ? '#a16207' : '#451a03'
+                  }}>
+                    {task.text}
+                  </span>
+                  
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <button onClick={() => handleCompleteTask(task.id)} style={styles.iconButton}>
+                      <CheckCircle size={22} color={task.completed ? "#a16207" : "#16a34a"} />
+                    </button>
+                    <button onClick={() => handleDeleteTask(task.id)} style={styles.iconButton}>
+                      <Trash2 size={20} color="#b91c1c" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {/* Shop View Layer */}
+        {activeTab === 'shop' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <h3 style={{ color: '#451a03', margin: '10px 0 5px 0' }}>Available Cargo Supplies</h3>
+            {shopCatalog.map((item) => (
+              <div key={item.id} style={styles.shopItemCard}>
+                <div style={{ flex: 1, paddingRight: '10px' }}>
+                  <b style={{ color: '#451a03' }}>{item.icon} {item.name}</b>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#78350f' }}>{item.desc}</p>
+                </div>
+                <button 
+                  onClick={() => handleBuyItem(item)}
+                  style={styles.purchaseButton}
+                >
+                  {item.cost}g Buy
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
       </div>
     </div>
@@ -170,6 +351,30 @@ const styles = {
     height: 'fit-content',
     boxShadow: '0 3px 0 #b45309'
   },
+  asciiMonitor: {
+    color: '#22c55e', 
+    margin: 0,
+    padding: 0,
+    whiteSpace: 'pre', 
+    textAlign: 'left', // Keeps the multi-line shape structurally sound
+    width: 'fit-content', // Shrinks the box to perfectly fit the pet shape
+    fontSize: '14px',
+    lineHeight: '1.4',
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+    background: 'transparent',
+    border: 'none'
+  },
+  tabButton: {
+    flex: 1, 
+    padding: '10px', 
+    cursor: 'pointer', 
+    fontFamily: 'inherit', 
+    fontWeight: 'bold',
+    border: '2px solid #78350f', 
+    borderRadius: '8px', 
+    boxShadow: '0 3px 0 #78350f'
+  },
   questForm: {
     display: 'flex',
     gap: '10px',
@@ -222,5 +427,27 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  shopItemCard: {
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    padding: '12px', 
+    background: '#ffffff', 
+    borderRadius: '10px',
+    border: '2px solid #b45309', 
+    boxShadow: '0 4px 0 rgba(120, 53, 15, 0.1)'
+  },
+  purchaseButton: {
+    background: '#15803d', 
+    color: '#fffbeb', 
+    border: '2px solid #166534',
+    borderRadius: '6px', 
+    padding: '8px 12px', 
+    fontWeight: 'bold', 
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  fontSize: '12px',
+  boxShadow: '0 3px 0 #14532d'
   }
-};
+};  
