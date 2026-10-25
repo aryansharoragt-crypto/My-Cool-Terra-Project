@@ -5,11 +5,23 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
   const [newTaskText, setNewTaskText] = useState('');
   const [activeTab, setActiveTab] = useState('quests');
 
+  const [selectedCategory, setSelectedCategory] = useState('💻 Coding');
+  const taskCategories = ['💻 Coding', '📚 Study', '⚡ Chores', '✨ General'];
+
   const [inventory, setInventory] = useState({
     coffee: 0,
     blanket: 0,
     treat: 1
   });
+
+  const [unlockedAchievements, setUnlockedAchievements] = useState(['first_step']);
+
+  const achievementCatalog = [
+    {id: 'first_step', name: 'First Byte', desc: 'Initialize your companion and complete your first task.', icon: '🌱' },
+    {id: 'task_master', name: 'Task Master', desc: 'Complete 5 daily quests', icon: '🏆' },
+    {id: 'coin_hoarder', name: 'Gold Farmer', desc: 'Accumulate over 100 gold', icon: '💰'},
+    {id: 'pet_evolution', name: 'Evolutionary Leap', desc: 'Reach level 3 with your companion', icon: '✨'}
+  ];
 
   // Hardcore cargo catalog with steeper pricing mechanics
   const shopCatalog = [
@@ -61,10 +73,40 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
     e.preventDefault(); 
     if (!newTaskText.trim()) return;
 
-    const updatedTasksList = [...tasks, { id: Date.now(), text: newTaskText.trim(), completed: false }];
+    const updatedTasksList = [
+      ...tasks, 
+      { 
+        id: Date.now(), 
+        text: newTaskText.trim(), 
+        category: selectedCategory,
+        completed: false 
+      }
+    ];
     setNewTaskText('');
     onStateChange(stats, updatedTasksList);
   };
+
+  useEffect(() => {
+    const completedTasksCount = tasks.filter(t => t.completed).length;
+    const newUnlocked = [...unlockedAchievements];
+
+    const unlock = (id) => {
+      if (!newUnlocked.includes(id)) {
+        newUnlocked.push(id);
+        const earned = achievementCatalog.find(a => a.id === id);
+        alert(`🏅 TROPHY UNLOCKED: ${earned?.icon} ${earned?.name}!`);
+      }
+    };
+
+    if (completedTasksCount >= 1) unlock('first_step');
+    if (completedTasksCount >= 5) unlock('task_master');
+    if (stats.coins >= 100) unlock('coin_hoarder');
+    if (stats.pet_level >= 3) unlock('pet_evolution');
+
+    if (newUnlocked.length != unlockedAchievements.length) {
+      setUnlockedAchievements(newUnlocked);
+    }
+  }, [tasks, stats, unlockedAchievements]);
 
   const handleCompleteTask = (id) => {
     const targetTask = tasks.find(t => t.id === id);
@@ -296,6 +338,29 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
               </div>
             </div>
 
+            <div style={{display:'flex', gap:'6px', marginBottom:'8px', flexWrap: 'wrap'}}>
+              {taskCategories.map((cat) => (
+                <button
+                  key={cat}
+                  type='button'
+                  onClick={() => setSelectedCategory(cat)}
+                  style={{
+                    background: selectedCategory === cat ? '#b45309' : '#f5ece1',
+                    color: selectedCategory === cat ? '#fffbf5' : '#451a03',
+                    border: '2px solid #78350f',
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  {cat}
+                </button> 
+              ))}
+            </div>
+
             <form onSubmit={handleAddTask} style={styles.questForm}>
               <input 
                 type="text" 
@@ -316,6 +381,10 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
                   background: task.completed ? '#f5ece1' : '#ffffff',
                   borderColor: task.completed ? '#cbd5e1' : '#b45309' 
                 }}>
+                  <div style = {{display: 'flex', flexDirection: 'column', flex: 1, paddingRight: '10px'}}>
+                    <span style={{fontSize: '10px', color: '#b45309', fontWeight: 'bold', marginBottom: '2px'}}>
+                      {task.category || '✨ General'}
+                    </span>
                   <span style={{ 
                     ...styles.taskText,
                     textDecoration: task.completed ? 'line-through' : 'none',
@@ -323,7 +392,7 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
                   }}>
                     {task.text}
                   </span>
-                  
+                  </div>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <button onClick={() => handleCompleteTask(task.id)} style={styles.iconButton}>
                       <CheckCircle size={22} color={task.completed ? "#a16207" : "#16a34a"} />
