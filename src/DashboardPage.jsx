@@ -5,6 +5,12 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
   const [newTaskText, setNewTaskText] = useState('');
   const [activeTab, setActiveTab] = useState('quests');
 
+  const [inventory, setInventory] = useState({
+    coffee: 0,
+    blanket: 0,
+    treat: 1
+  });
+
   // Hardcore cargo catalog with steeper pricing mechanics
   const shopCatalog = [
     { id: 'coffee', name: 'Premium Coffee Roast', cost: 120, desc: 'Boosts XP gain speed temporarily.', icon: '☕' },
@@ -102,6 +108,11 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
       }
     }
 
+    setInventory((prev) => ({
+      ...prev,
+      [item.id]: (prev[item.id] || 0) + 1
+    }));
+
     const updatedStats = { ...stats, coins: newCoins, pet_xp: newXp, pet_level: newLevel };
     onStateChange(updatedStats, tasks);
     
@@ -109,17 +120,26 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
   };
 
   const getPetSprite = () => {
-    if (stats.pet_level >= 6) {
+    if (stats.pet_level>=10) {
+      return `  /\_/\  ~ Terra Titan
+ ( ✧Д✧) 
+ / v v \\
+(_______)`;
+    } else if (stats.pet_level >= 6) {
       return ` /\\_/\\
 ( o.o ) ~ Elder Core
  > ^ <
  / | \\
 (___|____)`;
-    } else if (stats.pet_level >= 3) {
+    } else if (stats.pet_level >= 4) {
       return `  \\|/
  (•.•) ~ Leaflet
  /\\_/\\
 (__|__)`;
+    } else if (stats.pet_level >= 2) {
+      return `  o o
+( °_° ) ~ Hatchling
+ ( - )`;
     } else {
       return `  o O o
  ( °_° ) ~ Core Pod
@@ -156,6 +176,31 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
       window.location.reload();
     });
   };
+
+  const handleUseItem = (itemId, itemName) => {
+    if (!inventory[itemId] || inventory[itemId] <= 0) {
+      alert(`You don't have any ${itemName} left! Visit the Merchant Shop.`);
+      return;
+    }
+
+    setInventory((prev) => ({
+      ...prev,
+      [itemId]: prev[itemId] - 1
+    }));
+
+    let newXp = stats.pet_xp + (itemId === 'treat' ? 25:10);
+    let newLevel = stats.pet_level;
+
+    if (newXp>=100) {
+      newXp -= 100;
+      newLevel += 1;
+      alert(`🎉 Level Up! ${petName} reached Level ${newLevel}!`);
+    }
+
+    const updatedStats = { ...stats, pet_xp: newXp, pet_level: newLevel };
+    onStateChange(updatedStats, tasks);
+    alert(`You used ${itemName}! ${petName} feels energized (+${itemId === 'treat' ? 25 : 10} XP).`);
+  }
 
   return (
     <div style={styles.bodyWrapper}>
@@ -203,6 +248,11 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
             }}
           >
             🏪 Merchant Shop
+          </button>
+          <button
+          onClick={() => setActiveTab('backpack')}
+          style = {{ ...styles.tabButton, background: activeTab === 'backpack' ? '#b45309' : '#f5ece1', color: activeTab === 'backpack' ? '#fffbf5' : '#451a03'}}>
+            🎒 Backpack ({Object.values(inventory).reduce((a, b) => a + b, 0)})
           </button>
         </div>
 
@@ -322,6 +372,35 @@ export default function DashboardPage({ petName, stats, tasks, onStateChange }) 
                 </button>
               </div>
           </div>
+        )}
+
+        {activeTab === 'backpack' && (
+          <div style = {{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <h3 style={{ color: '#451a03', margin: '10px 0 5px 0'}}>Your Inventory</h3>
+            {shopCatalog.map((item) => {
+              const count = inventory[item.id] || 0;
+              return (
+                <div key={item.id} style={styles.shopItemCard}>
+                  <div style={{ flex: 1, paddingRight: '10px'}}>
+                    <b style={{color: '#451a03'}}>{item.icon} {item.name}</b>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#78350f' }}>Owned: {count} | {item.desc}</p>
+                  </div>
+                  <button
+                    onClick={() => handleUseItem(item.id, item.name)}
+                    disabled = {count === 0}
+                    style={{
+                      ...styles.purchaseButton,
+                      background: count>0 ? '#15803d' : '#9ca3af',
+                      borderColor: count>0 ? '#166534' : '#6b7280',
+                      cursor: count>0 ? 'pointer' : 'not-allowed',
+                      boxShadow: count>0 ? '0 3px 0 #14532d' : '0 3px 0 #4b5563'
+                    }}>
+                      Use Item
+                    </button>
+                  </div>
+              );
+            })}
+            </div>
         )}
 
       </div>
